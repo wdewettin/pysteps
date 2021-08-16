@@ -477,6 +477,11 @@ def import_bom_rf3_xr(filename, **kwargs):
         quality field is currently set to None.
     """
 
+    if "varname" in kwargs.keys():
+        varname = kwargs["varname"]
+    else:
+        varname = "precipitation"
+
     if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
             "netCDF4 package is required to import BoM Rainfields3 products "
@@ -484,13 +489,18 @@ def import_bom_rf3_xr(filename, **kwargs):
         )
 
     ds = _import_bom_rf3_data_xr(filename)
-    ds_meta = _import_bom_rf3_geodata_xr(ds)
+    ds_meta = _import_bom_rf3_geodata_xr(ds, varname=varname)
 
     # rename valid_time to t if exists
     if 'valid_time' in ds_meta:
         ds_meta = ds_meta.rename({'valid_time': 't'})
 
-    return ds_meta.precipitation
+    if varname == "accum_prcp":
+        return ds_meta.accum_prcp
+    elif varname == "precipitaiton":
+        return ds_meta.precipitation
+    else:
+        return None
 
 
 def _import_bom_rf3_data_xr(filename):
