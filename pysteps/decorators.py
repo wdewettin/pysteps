@@ -362,7 +362,6 @@ def _xarray2legacy(data_array):
     metadata.update(**data_array.attrs)
 
     if "t" in data_array.coords:
-        print(data_array["t"])
         metadata["timestamps"] = data_array["t"]
 
     return _array, None, metadata
