@@ -8,6 +8,7 @@ import numpy as np
 from pysteps.visualization.utils import reproject_geodata  # ???
 import rasterio
 import netCDF4
+import datetime
 
 # 1. Import NWP data
 
@@ -17,7 +18,6 @@ R_NWP, _, metadata = import_bom_rf3_xr(
     varname="accum_prcp",
     legacy=True,
 )
-
 pprint(metadata)
 """
 
@@ -48,33 +48,59 @@ R_NWP_dec[:], R_NWP_dec.attrs = to_rainrate(R_NWP_dec[:], R_NWP_dec.attrs)
 
 # 3. Plot NWP data
 
-"""
 for i in range(R_NWP_dec.shape[0]):
-	plot_precip_field(R_NWP_dec[i, :, :], geodata=geodata)
-	print("plotting NWP_{}".format(i))
-	plt.savefig("NWP_{}.png".format(i))
-	plt.close()
-"""
+    plot_precip_field(R_NWP_dec[i, :, :], geodata=geodata)
+    print("plotting NWP_{}".format(i))
+    plt.savefig("BOM_NWP_{}.png".format(i))
+    plt.close()
 
 # 4. Import radar data
 
-R, _, metadata = import_bom_rf3_xr(
-    "/home/wdewettin/Downloads/radar/bom/prcp-c10/66/2020/10/31/66_20201031_050000.prcp-c10.nc",
-    legacy=True,
-)
-print("X")
-pprint(metadata)
-print("D")
+d = datetime.datetime(2020, 10, 31, 00, 00, 00)
 
-R = import_bom_rf3_xr(
-    "/home/wdewettin/Downloads/radar/bom/prcp-c10/66/2020/10/31/66_20201031_050000.prcp-c10.nc",
-    legacy=False,
-)
+for i in range(144):
+    time = d.time().strftime("%H%M%S")
 
-R.attrs["accutime"] = 10
-R[:], R.attrs = to_rainrate(R[:], R.attrs)
+    """
+    R, _, metadata = import_bom_rf3_xr(
+        "/home/wdewettin/Downloads/radar/bom/prcp-c10/66/2020/10/31/66_20201031_050000.prcp-c10.nc",
+        legacy=True,
+    )
+    R = np.squeeze(R)
+    pprint(metadata)
+    """
 
-# 5. Plot radar data
+    R = import_bom_rf3_xr(
+        "/home/wdewettin/Downloads/radar/bom/prcp-c10/66/2020/10/31/66_20201031_{}.prcp-c10.nc".format(
+            time
+        ),
+        legacy=False,
+    )
+    R = xr.DataArray.squeeze(R)
+
+    R.attrs["accutime"] = 10
+    R[:], R.attrs = to_rainrate(R[:], R.attrs)
+
+    geodata = {
+        "projection": R.attrs["projection"],
+        "x1": R.x[0],
+        "y1": R.y[-1],
+        "x2": R.x[-1],
+        "y2": R.y[0],
+        "yorigin": "upper",
+    }
+    # pprint(geodata)
+
+    # 5. Plot radar data
+
+    plot_precip_field(R, geodata=geodata)
+    print("plotting radar {}".format(i))
+    plt.savefig("BOM_radar_{}.png".format(i))
+    plt.close()
+
+    d = d + datetime.timedelta(minutes=10)
+
+########################################################################
 
 """
 # Removing this makes an error go away
@@ -87,20 +113,6 @@ plt.close()
 
 R_new = R.rio.reproject("EPSG:2990", nodata=-10)
 R_new.where(R_new != -10).isel(time=30).plot()
-plt.show()
-plt.close()
-"""
-
-"""
-pprint(metadata)
-# print(reproject_geodata(metadata))
-
-plot_precip_field(R[0, 30, :, :], geodata=metadata)
-plt.show()
-plt.close()
-
-metadata["projection"] = '+proj=longlat +datum=WGS84 +no_defs'
-plot_precip_field(R[0, 30, :, :], geodata=metadata)
 plt.show()
 plt.close()
 """
