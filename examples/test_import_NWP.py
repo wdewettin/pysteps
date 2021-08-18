@@ -5,7 +5,6 @@ from pprint import pprint
 import xarray as xr
 from pysteps.utils.conversion import to_rainrate
 import numpy as np
-from pysteps.visualization.utils import reproject_geodata  # ???
 import rasterio
 import netCDF4
 import datetime
