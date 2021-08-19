@@ -12,6 +12,7 @@ with rasterio.Env():
     # The following is equivalent to
     # A(d, 0, -cols*d/2, 0, -d, rows*d/2).
     src_transform = A.translation(-cols * d / 2, rows * d / 2) * A.scale(d, -d)
+    print(src_transform)
     src_crs = {"init": "EPSG:4326"}
     source = np.ones(src_shape, np.uint8) * 255
 
