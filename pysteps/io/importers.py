@@ -477,38 +477,45 @@ def import_bom_rf3_xr(filename, **kwargs):
         quality field is currently set to None.
     """
 
-    if "varname" in kwargs.keys():
-        varname = kwargs["varname"]
-    else:
-        varname = "precipitation"
-
     if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
             "netCDF4 package is required to import BoM Rainfields3 products "
             "but it is not installed"
         )
 
-    ds = _import_bom_rf3_data_xr(filename)
-    ds_meta = _import_bom_rf3_geodata_xr(ds, varname=varname)
+    ds = _import_bom_rf3_data_xr(
+        filename,
+        **kwargs,
+    )
+    ds_meta = _import_bom_rf3_geodata_xr(
+        ds,
+        **kwargs,
+    )
 
     # rename valid_time to t if exists
     if "valid_time" in ds_meta:
         ds_meta = ds_meta.rename({"valid_time": "t"})
 
-    if varname == "accum_prcp":
-        return ds_meta.accum_prcp
-    elif varname == "precipitation":
-        return ds_meta.precipitation
-    else:
-        return None
+    return ds_meta.precipitation
 
 
-def _import_bom_rf3_data_xr(filename):
+def _import_bom_rf3_data_xr(
+    filename,
+    **kwargs,
+):
+
+    varname_time = kwargs.get("varname_time", "valid_time")
+    # Tested in python3.6 and chunks did not work properly
+    # commenting next line until find the reason
+    # chunks = kwargs.get('chunks', {varname_time: 1})
 
     ds_rainfall = xr.open_mfdataset(
         filename,
         combine="nested",
-        concat_dim="valid_time",
+        concat_dim=varname_time,
+        # chunks=chunks,
+        lock=False,
+        parallel=True,
     )
 
     return ds_rainfall
@@ -516,8 +523,11 @@ def _import_bom_rf3_data_xr(filename):
 
 def _import_bom_rf3_geodata_xr(
     ds_in,
-    varname="precipitation",
+    **kwargs,
 ):
+
+    # select a default varname if none is passed
+    varname = kwargs.get("varname", "precipitation")
 
     # extract useful information
     # projection
