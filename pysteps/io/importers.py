@@ -1003,7 +1003,6 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     # The 'where' group of mch- and Opera-data, is called 'geographic' in the
     # KNMI data.
     geographic = f["geographic"]
-    print(geographic.keys())
     proj4str = geographic["map_projection"].attrs["projection_proj4_params"].decode()
     pr = pyproj.Proj(proj4str)
     metadata["projection"] = proj4str
