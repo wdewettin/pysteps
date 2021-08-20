@@ -60,11 +60,13 @@ print("NWP_crs = {'init': 'EPSG:4326'}")
 
 d = datetime.datetime(2018, 1, 5, 12, 0)
 
-R = import_knmi_hdf5(
+R, _, metadata = import_knmi_hdf5(
     "/home/wdewettin/Downloads/KNMI/20180105/Uncorrected_Radar/RAD_NL25_RAP_5min_20180105{}.h5".format(
         d.strftime("%H%M")
-    )
+    ),
+    legacy=True,
 )
+
 print(R)
 print("metadata")
 pprint(metadata)
