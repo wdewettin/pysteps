@@ -88,3 +88,5 @@ venv.bak/
 
 # example data
 examples/radar/
+examples/nwp/
+examples/rainbow/

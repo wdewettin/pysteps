@@ -76,8 +76,6 @@ def get_precipitation_fields(
         The pre-processing steps are: 1) Convert to mm/h,
         2) Mask invalid values, 3) Log-transform the data [dBR].
 
-<<<<<<< HEAD
-=======
     metadata: bool, optional
         If True, also return file metadata.
 
@@ -85,7 +83,6 @@ def get_precipitation_fields(
         The extent of the bounding box in data coordinates to be used to clip
         the data.
 
->>>>>>> master
     upscale: float or None, optional
         Upscale fields in space during the pre-processing steps.
         If it is None, the precipitation field is not modified.
