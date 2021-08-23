@@ -2,10 +2,13 @@ from pysteps.io import import_odim_hdf5, import_rmi_nwp_xr
 from pysteps.visualization import plot_precip_field
 import matplotlib.pyplot as plt
 from pprint import pprint
+from pysteps.utils.conversion import to_rainrate
 
 # Import radar data
 
-R = import_odim_hdf5("20210704000000.rad.becomp00.image.rate.beborder00_comp_sri.hdf")
+R = import_odim_hdf5(
+    "./rainbow/20210704/20210704160500.rad.becomp00.image.rate.beborder00_comp_sri.hdf"
+)
 
 geodata = {
     "projection": R.attrs["projection"],
@@ -19,28 +22,33 @@ geodata = {
 # Plot radar data
 
 plt.figure(1)
-plt.title("Radar at 2021-07-04 00:00:00")
 plot_precip_field(R, geodata=geodata)
+plt.title("Radar at 2021-07-04 16:05:00")
+
 
 # Import NWP data
 
-R_NWP = import_rmi_nwp_xr("ao13_2021071406_steps_be13_5min.nc")
-
-pprint(R_NWP)
+R_NWP = import_rmi_nwp_xr("./nwp/ao13_2021070412_native_5min.nc")
 
 geodata_NWP = {
-    "projection": "proj=lcc lon_0=4.55 lat_1=50.8 lat_2=50.8 a=6371229 es=0 +x_0=365950 +y_0=-365950",  # R_NWP.attrs["projection"], # "proj=lcc lon_0=4.55 lat_1=50.8 lat_2=50.8 a=6371229 es=0 +x_0=365950 +y_0=-365950"
-    "x1": R_NWP.x.x1 / 1000.0,
-    "y1": -R_NWP.y.y2 / 1000.0,
-    "x2": R_NWP.x.x2 / 1000.0,
-    "y2": -R_NWP.y.y1 / 1000.0,
+    "projection": R_NWP.attrs["projection"] + " lat_0=50.8",
+    "x1": R_NWP.x.x1,
+    "y1": R_NWP.y.y1,
+    "x2": R_NWP.x.x2,
+    "y2": R_NWP.y.y2,
     "yorigin": R_NWP.attrs["yorigin"],
 }
 
-plt.figure(2)
-plt.title("NWP at 2021-07-14 10:05:00")
-plot_precip_field(R_NWP[0, :, :], geodata=geodata_NWP)
+R_NWP.attrs["accutime"] = 5.0
+R_NWP[:], R_NWP.attrs = to_rainrate(R_NWP[:], R_NWP.attrs)
 
-# Show all the figures
+pprint(R_NWP.attrs)
+
+plt.figure(2)
+plot_precip_field(R_NWP[0, :, :], geodata=geodata_NWP)
+plt.title("NWP at 2021-07-04 16:05:00")
+
+
+# Show all plots
 
 plt.show()
