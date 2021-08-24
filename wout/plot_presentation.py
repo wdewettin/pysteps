@@ -11,6 +11,7 @@ from pysteps.cascade.decomposition import decomposition_fft
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field
 from pysteps.io import import_rmi_nwp_xr
+from pysteps.blending.utils import reprojection
 
 
 # Give date as input
@@ -76,8 +77,10 @@ ypixelsize_NWP = R_NWP.attrs["ypixelsize"]
 x_NWP = R_NWP.x
 y_NWP = R_NWP.y
 
+R_NWP.attrs["projection"] = R_NWP.attrs["projection"] + " lat_0=50.8"
+
 geodata_NWP = {
-    "projection": R_NWP.attrs["projection"] + " lat_0=50.8",
+    "projection": R_NWP.attrs["projection"],
     "x1": R_NWP.x.x1,
     "y1": R_NWP.y.y1,
     "x2": R_NWP.x.x2,
@@ -91,19 +94,23 @@ R_NWP[:], R_NWP.attrs = conversion.to_rainrate(R_NWP[:], R_NWP.attrs)
 t0_str = "202107141005"
 t0 = datetime.strptime(t0_str, "%Y%m%d%H%M")
 
-"""
-# Plot native NWP data
 for i in range(R_NWP.shape[0]):
-	t = t0 + i * timedelta(minutes=5)
-	print(t)
-	
+    # Plot native NWP data
+    t = t0 + i * timedelta(minutes=5)
+    print(t)
+
+    """
 	plot_precip_field(R_NWP[i, :, :], geodata=geodata_NWP)
 	plt.title("NWP data at {}".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S")))
 	plt.savefig("./images/2_nwp_data_{}.png".format(datetime.strftime(t, "%Y%m%d%H%M%S")))
 	plt.close()
-"""
 
-# Reproject NWP data onto radar domain
+	# Reproject NWP data onto radar domain
+	R_NWP_rprj = reprojection(R_NWP[i, :, :], R_radar)
 
-pprint(geodata_radar)
-pprint(geodata_NWP)
+	# Plot reprojected NWP data
+	plot_precip_field(R_NWP_rprj, geodata=geodata_radar)
+	plt.title("Reprojected NWP data at {}".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S")))
+	plt.savefig("./images/3_reprojected_nwp_data_{}.png".format(datetime.strftime(t, "%Y%m%d%H%M%S")))
+	plt.close()
+	"""
