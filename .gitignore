@@ -87,6 +87,7 @@ venv.bak/
 .mypy_cache/
 
 # example data
-examples/radar/
-examples/nwp/
-examples/rainbow/
+wout/radar/
+wout/nwp/
+wout/rainbow/
+wout/images/

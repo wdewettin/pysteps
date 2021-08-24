@@ -14,6 +14,17 @@
         "colorscale": "pysteps"
     },
     "data_sources": {
+		"rmi": {
+				"root_path": "./rainbow",
+				"path_fmt": "%Y%m%d",
+				"fn_pattern": "%Y%m%d%H%M%S.rad.becomp00.image.rate.beborder00_comp_sri",
+				"fn_ext": "hdf",
+				"importer": "odim_hdf5",
+				"timestep": 5,
+				"importer_kwargs": {
+					"gzipped": true
+				}
+			},
         "bom": {
             "root_path": "./radar/bom",
             "path_fmt": "prcp-cscn/2/%Y/%m/%d",
