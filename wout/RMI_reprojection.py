@@ -7,8 +7,8 @@ from rasterio import Affine as A
 from rasterio.warp import reproject, Resampling
 import numpy as np
 import xarray as xr
+from pysteps.blending.utils import reprojection
 
-"""
 # Import radar data
 
 R = import_odim_hdf5(
@@ -24,14 +24,11 @@ geodata = {
     "yorigin": R.attrs["yorigin"],
 }
 
-pprint(geodata)
-
 # Plot radar data
 
 plt.figure(1)
 plot_precip_field(R, geodata=geodata)
 plt.title("Radar at 2021-07-04 16:05:00")
-"""
 
 # Import native NWP data
 
@@ -43,17 +40,16 @@ ypixelsize_NWP = R_NWP.attrs["ypixelsize"]
 x_NWP = R_NWP.x
 y_NWP = R_NWP.y
 
+R_NWP.attrs["projection"] = R_NWP.attrs["projection"] + " lat_0=50.8"
+
 geodata_NWP = {
-    "projection": R_NWP.attrs["projection"] + " lat_0=50.8",
+    "projection": R_NWP.attrs["projection"],
     "x1": R_NWP.x.x1,
     "y1": R_NWP.y.y1,
     "x2": R_NWP.x.x2,
     "y2": R_NWP.y.y2,
     "yorigin": R_NWP.attrs["yorigin"],
 }
-
-print(R_NWP.shape)
-pprint(geodata_NWP)
 
 R_NWP.attrs["accutime"] = 5.0
 R_NWP[:], R_NWP.attrs = to_rainrate(R_NWP[:], R_NWP.attrs)
@@ -64,6 +60,7 @@ plt.figure(2)
 plot_precip_field(R_NWP[0, :, :], geodata=geodata_NWP)
 plt.title("NWP at 2021-07-04 16:05:00")
 
+"""
 # Import reprojected NWP data
 
 R_NWP_radar = import_rmi_nwp_xr("./nwp/ao13_2021070412_radar512_5min.nc")
@@ -94,23 +91,29 @@ R_NWP_radar[:], R_NWP_radar.attrs = to_rainrate(R_NWP_radar[:], R_NWP_radar.attr
 plt.figure(3)
 plot_precip_field(R_NWP_radar[1, :, :], geodata=geodata_NWP_radar)
 plt.title("reprojected NWP (by Lesley) at 2021-07-04 16:05:00")
+"""
 
 # Reproject native NWP data
+
+xpixelsize_radar = R.attrs["xpixelsize"]
+ypixelsize_radar = R.attrs["ypixelsize"]
 
 NWP_crs = geodata_NWP["projection"]
 NWP_transform = A.translation(geodata_NWP["x1"], geodata_NWP["y2"]) * A.scale(
     xpixelsize_NWP, -ypixelsize_NWP
 )
-radar_crs = geodata_NWP_radar["projection"]
-radar_transform = A.translation(
-    geodata_NWP_radar["x1"], geodata_NWP_radar["y2"]
-) * A.scale(xpixelsize_radar, -ypixelsize_radar)
+radar_crs = geodata["projection"]
+radar_transform = A.translation(geodata["x1"], geodata["y2"]) * A.scale(
+    xpixelsize_radar, -ypixelsize_radar
+)
+
+R_rprj = reprojection(R_NWP[0, :, :], R)
 
 # Reproject
 
-R_NWP_rprj = np.zeros_like(R_NWP_radar[0, :, :])
+R_NWP_rprj = np.zeros_like(R[:])
 
-reproject(
+R_NWP_rprj, _ = reproject(
     R_NWP[0, :, :],
     R_NWP_rprj,
     src_transform=NWP_transform,
@@ -122,8 +125,15 @@ reproject(
 )
 
 plt.figure(4)
-plot_precip_field(R_NWP_rprj, geodata=geodata_NWP_radar)
+plot_precip_field(R_NWP_rprj, geodata=geodata)
 plt.title("reprojected NWP (by WOUT) at 2021-07-04 16:05:00")
+
+plt.figure(5)
+plot_precip_field(R_rprj, geodata=geodata)
+plt.title("reprojected NWP (by function) at 2021-07-04 16:05:00")
+
+plt.figure(6)
+plot_precip_field(np.abs(R_rprj - R_NWP_rprj))
 
 """
 # Plot difference
