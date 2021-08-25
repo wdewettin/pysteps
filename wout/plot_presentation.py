@@ -13,6 +13,7 @@ from pysteps.visualization import plot_precip_field
 from pysteps.io import import_rmi_nwp_xr
 from pysteps.blending.utils import reprojection
 from pysteps.nowcasts.linear_blending import forecast
+from pysteps.postprocessing import ensemblestats
 from pysteps.motion.lucaskanade import dense_lucaskanade
 
 
@@ -132,10 +133,10 @@ def linear_blending(
                     + weight_nowcast * R_nowcast[:, i, :, :]
                 )
 
-            # Find where the NaN values are and replace them with NWP data
-            if use_nwp:
-                nan_indices = np.isnan(R_blended)
-                R_blended[nan_indices] = R_nwp[nan_indices]
+        # Find where the NaN values are and replace them with NWP data
+        if use_nwp:
+            nan_indices = np.isnan(R_blended)
+            R_blended[nan_indices] = R_nwp[nan_indices]
     else:
         # If no NWP data is given, the blended field is simply equal to the nowcast field
         R_blended = R_nowcast
@@ -149,7 +150,17 @@ date_str = "202107141100"  # input("Give date and time (e.g.: 201609281600):    
 n_timesteps = 36
 start_blending = 120
 end_blending = 240
-n_ens_members = 10
+n_ens_members = 40
+plot_1 = False
+plot_2 = False
+plot_3 = False
+plot_4 = False
+plot_5 = False
+plot_5_1 = False
+plot_6 = False
+plot_7 = False
+plot_8 = False
+plot_9 = False
 
 ########################################################################
 # 1. Plot radar fields
@@ -192,19 +203,22 @@ geodata_radar = {
     "yorigin": R_radar.attrs["yorigin"],
 }
 
-"""
-for i in range(n_timesteps + 1): 
-       
-    # Plot the radar rainfall field
-    t = date + i * timedelta(minutes=5)
-    print(t)
-    print(R_radar.t[i])
-    
-    plot_precip_field(R_radar[i, :, :], geodata=geodata_radar)
-    plt.title("Radar image at {}".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S")))
-    plt.savefig("./images/1_radar_image_{}.png".format(datetime.strftime(t, "%Y%m%d%H%M%S")))
-    plt.close()
-"""
+if plot_1:
+    for i in range(n_timesteps + 1):
+        # Plot the radar rainfall field
+        t = date + i * timedelta(minutes=5)
+        print(t)
+        print(R_radar.t[i])
+
+        plot_precip_field(R_radar[i, :, :], geodata=geodata_radar)
+        plt.title("Radar image at {}".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S")))
+        plt.savefig(
+            "./images/linear_blending/1_radar_image_{}.png".format(
+                datetime.strftime(t, "%Y%m%d%H%M%S")
+            ),
+            dpi=300,
+        )
+        plt.close()
 
 ########################################################################
 # 2. Plot native NWP fields
@@ -243,46 +257,62 @@ print("start_i = {}".format(start_i))
 R_NWP_rprj = np.zeros((n_timesteps + 1, R_radar.shape[1], R_radar.shape[2]))
 
 for i in range(start_i, start_i + n_timesteps + 1):
-    """
-    # Plot native NWP data
-    t = t0 + i * timedelta(minutes=5)
-    print(t)
-    print(R_NWP.t[i])
+    if plot_2:
+        # Plot native NWP data
+        t = t0 + i * timedelta(minutes=5)
+        print(t)
+        print(R_NWP.t[i])
 
-    plot_precip_field(R_NWP[i, :, :], geodata=geodata_NWP)
-    plt.title("NWP data at {}".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S")))
-    plt.savefig("./images/2_nwp_data_{}.png".format(datetime.strftime(t, "%Y%m%d%H%M%S")))
-    plt.close()
-    """
+        plot_precip_field(R_NWP[i, :, :], geodata=geodata_NWP)
+        plt.title("NWP data at {}".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S")))
+        plt.savefig(
+            "./images/linear_blending/2_nwp_data_{}.png".format(
+                datetime.strftime(t, "%Y%m%d%H%M%S")
+            ),
+            dpi=300,
+        )
+        plt.close()
 
     # Reproject NWP data onto radar domain
     R_NWP_rprj[i - start_i, :, :] = reprojection(R_NWP[i, :, :], R_radar[0, :, :])
 
-    """
-    # Plot reprojected NWP data
-    plot_precip_field(R_NWP_rprj[i - start_i, :, :], geodata=geodata_radar)
-    plt.title("Reprojected NWP data at {}".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S")))
-    plt.savefig("./images/3_reprojected_nwp_data_{}.png".format(datetime.strftime(t, "%Y%m%d%H%M%S")))
-    plt.close()
-    """
+    if plot_3:
+        # Plot reprojected NWP data
+        plot_precip_field(R_NWP_rprj[i - start_i, :, :], geodata=geodata_radar)
+        plt.title(
+            "Reprojected NWP data at {}".format(
+                datetime.strftime(t, "%Y-%m-%d %H:%M:%S")
+            )
+        )
+        plt.savefig(
+            "./images/linear_blending/3_reprojected_nwp_data_{}.png".format(
+                datetime.strftime(t, "%Y%m%d%H%M%S")
+            ),
+            dpi=300,
+        )
+        plt.close()
 
 ########################################################################
 # 4. Plot dummy NWP data
 
 R_dummy = dummy_nwp(R_radar[0, :, :], n_timesteps + 1)
 
-"""
-for i in range(n_timesteps + 1):
-    t = date + timedelta(minutes=5) * i
-    print(t)
+if plot_4:
+    for i in range(n_timesteps + 1):
+        t = date + timedelta(minutes=5) * i
+        print(t)
 
-    plot_precip_field(R_dummy[i, :, :], geodata=geodata_radar)
-    plt.title("Dummy NWP data at {}".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S")))
-    plt.savefig(
-        "./images/4_dummy_nwp_data_{}.png".format(datetime.strftime(t, "%Y%m%d%H%M%S"))
-    )
-    plt.close()
-"""
+        plot_precip_field(R_dummy[i, :, :], geodata=geodata_radar)
+        plt.title(
+            "Dummy NWP data at {}".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S"))
+        )
+        plt.savefig(
+            "./images/linear_blending/4_dummy_nwp_data_{}.png".format(
+                datetime.strftime(t, "%Y%m%d%H%M%S")
+            ),
+            dpi=300,
+        )
+        plt.close()
 
 ########################################################################
 # 5. Calculate and plot STEPS nowcast
@@ -325,7 +355,7 @@ nowcast_kwargs = {
     "n_ens_members": n_ens_members,
     "n_cascade_levels": 6,
     "R_thr": -10.0,
-    "kmperpixel": 2.0,
+    "kmperpixel": metadata_input["xpixelsize"] * 3 / 1000.0,
     "timestep": 5,
     "noise_method": "nonparametric",
     "vel_pert_method": "bps",
@@ -349,19 +379,64 @@ R_steps = forecast(
 # Calculate the mean
 R_steps_mean = np.mean(R_steps[:, :, :, :], axis=0)
 
-"""
 # Plot the STEPS nowcasts
-for i in range(n_timesteps):
-    t = date + i * timedelta(minutes=5) + timedelta(minutes=5)
-    print(t)
-    
-    plot_precip_field(R_steps_mean[i, :, :], geodata=geodata_radar)
-    plt.title("STEPS forecast at {}".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S")))
-    plt.savefig(
-        "./images/5_steps_forecast_{}.png".format(datetime.strftime(t, "%Y%m%d%H%M%S"))
-    )
-    plt.close()
-"""
+if plot_5:
+    for i in range(n_timesteps):
+        t = date + i * timedelta(minutes=5) + timedelta(minutes=5)
+        print(t)
+
+        plot_precip_field(R_steps_mean[i, :, :], geodata=geodata_radar)
+        plt.title(
+            "STEPS forecast at {}".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S"))
+        )
+        plt.savefig(
+            "./images/linear_blending/5_steps_forecast_{}.png".format(
+                datetime.strftime(t, "%Y%m%d%H%M%S")
+            ),
+            dpi=300,
+        )
+        plt.close()
+
+########################################################################
+# 5.1 Plot STEPS forecast with NWP data instead of mask
+
+# Downscale the reprojected NWP data
+R_NWP_rprj, _ = dimension.aggregate_fields_space(
+    R_NWP_rprj, metadata_input, metadata_input["xpixelsize"] * 3
+)
+
+# Calculate the blended field
+R_steps_1 = linear_blending(
+    R_steps,
+    n_timesteps,
+    5,
+    R_nwp=R_NWP_rprj[1:, :, :],
+    start_blending=n_timesteps * 5 + 1,
+    end_blending=n_timesteps * 5 + 2,
+)
+
+# Calculate the mean
+R_steps_mean_1 = np.mean(R_steps_1[:, :, :, :], axis=0)
+
+if plot_5_1:
+    # Plot the STEPS nowcasts
+    for i in range(n_timesteps):
+        t = date + i * timedelta(minutes=5) + timedelta(minutes=5)
+        print(t)
+
+        plot_precip_field(R_steps_mean_1[i, :, :], geodata=geodata_radar)
+        plt.title(
+            "STEPS forecast with NWP data at {}".format(
+                datetime.strftime(t, "%Y-%m-%d %H:%M:%S")
+            )
+        )
+        plt.savefig(
+            "./images/linear_blending/5_1_steps_forecast_{}.png".format(
+                datetime.strftime(t, "%Y%m%d%H%M%S")
+            ),
+            dpi=300,
+        )
+        plt.close()
 
 ########################################################################
 # 6. Blending with start=0 and end=end and dummy data
@@ -385,19 +460,25 @@ R_blended_1 = linear_blending(
 # Calculate the mean
 R_blended_mean_1 = np.mean(R_blended_1[:, :, :, :], axis=0)
 
-"""
-# Plot the blended fields
-for i in range(n_timesteps):
-    t = date + i * timedelta(minutes=5) + timedelta(minutes=5)
-    print(t)
-    
-    plot_precip_field(R_blended_mean_1[i, :, :], geodata=geodata_radar)
-    plt.title("Blended forecast at {} (version 1)".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S")))
-    plt.savefig(
-        "./images/6_blended_forecast_version_1_{}.png".format(datetime.strftime(t, "%Y%m%d%H%M%S"))
-    )
-    plt.close()
-"""
+if plot_6:
+    # Plot the blended fields
+    for i in range(n_timesteps):
+        t = date + i * timedelta(minutes=5) + timedelta(minutes=5)
+        print(t)
+
+        plot_precip_field(R_blended_mean_1[i, :, :], geodata=geodata_radar)
+        plt.title(
+            "Blended forecast at {} (version 1)".format(
+                datetime.strftime(t, "%Y-%m-%d %H:%M:%S")
+            )
+        )
+        plt.savefig(
+            "./images/linear_blending/6_blended_forecast_version_1_{}.png".format(
+                datetime.strftime(t, "%Y%m%d%H%M%S")
+            ),
+            dpi=300,
+        )
+        plt.close()
 
 ########################################################################
 # 7. Blending with start and end and dummy data
@@ -415,27 +496,30 @@ R_blended_2 = linear_blending(
 # Calculate the mean
 R_blended_mean_2 = np.mean(R_blended_2[:, :, :, :], axis=0)
 
-"""
-# Plot the blended fields
-for i in range(n_timesteps):
-    t = date + i * timedelta(minutes=5) + timedelta(minutes=5)
-    print(t)
-    
-    plot_precip_field(R_blended_mean_2[i, :, :], geodata=geodata_radar)
-    plt.title("Blended forecast at {} (version 2)".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S")))
-    plt.savefig(
-        "./images/7_blended_forecast_version_2_{}.png".format(datetime.strftime(t, "%Y%m%d%H%M%S"))
-    )
-    plt.close()
-"""
+
+if plot_7:
+    # Plot the blended fields
+    for i in range(n_timesteps):
+        t = date + i * timedelta(minutes=5) + timedelta(minutes=5)
+        print(t)
+
+        plot_precip_field(R_blended_mean_2[i, :, :], geodata=geodata_radar)
+        plt.title(
+            "Blended forecast at {} (version 2)".format(
+                datetime.strftime(t, "%Y-%m-%d %H:%M:%S")
+            )
+        )
+        plt.savefig(
+            "./images/linear_blending/7_blended_forecast_version_2_{}.png".format(
+                datetime.strftime(t, "%Y%m%d%H%M%S")
+            ),
+            dpi=300,
+        )
+        plt.close()
+
 
 ########################################################################
 # 8. Blending with start and end and real NWP data
-
-# Downscale the reprojected NWP data
-R_NWP_rprj, _ = dimension.aggregate_fields_space(
-    R_NWP_rprj, metadata_input, metadata_input["xpixelsize"] * 3
-)
 
 # Calculate the blended fields
 R_blended_3 = linear_blending(
@@ -450,19 +534,64 @@ R_blended_3 = linear_blending(
 # Calculate the mean
 R_blended_mean_3 = np.mean(R_blended_3[:, :, :, :], axis=0)
 
-"""
-# Plot the blended fields
-for i in range(n_timesteps):
-    t = date + i * timedelta(minutes=5) + timedelta(minutes=5)
-    print(t)
-    
-    plot_precip_field(R_blended_mean_3[i, :, :], geodata=geodata_radar)
-    plt.title("Blended forecast at {} (version 3)".format(datetime.strftime(t, "%Y-%m-%d %H:%M:%S")))
-    plt.savefig(
-        "./images/8_blended_forecast_version_3_{}.png".format(datetime.strftime(t, "%Y%m%d%H%M%S"))
-    )
-    plt.close()
-"""
+if plot_8:
+    # Plot the blended fields
+    for i in range(n_timesteps):
+        t = date + i * timedelta(minutes=5) + timedelta(minutes=5)
+        print(t)
+
+        plot_precip_field(R_blended_mean_3[i, :, :], geodata=geodata_radar)
+        plt.title(
+            "Blended forecast at {} (version 3)".format(
+                datetime.strftime(t, "%Y-%m-%d %H:%M:%S")
+            )
+        )
+        plt.savefig(
+            "./images/linear_blending/8_blended_forecast_version_3_{}.png".format(
+                datetime.strftime(t, "%Y%m%d%H%M%S")
+            ),
+            dpi=300,
+        )
+        plt.close()
+
+
+########################################################################
+# 9. Blending with start and end and real NWP data
+
+# Calculate the blended fields
+R_blended_4 = linear_blending(
+    R_steps,
+    n_timesteps,
+    5,
+    R_nwp=R_NWP_rprj[1:, :, :],
+    start_blending=start_blending,
+    end_blending=end_blending,
+    use_nwp=False,
+)
+
+# Calculate the mean
+R_blended_mean_4 = np.mean(R_blended_4[:, :, :, :], axis=0)
+
+if plot_9:
+    # Plot the blended fields
+    for i in range(n_timesteps):
+        t = date + i * timedelta(minutes=5) + timedelta(minutes=5)
+        print(t)
+
+        plot_precip_field(R_blended_mean_4[i, :, :], geodata=geodata_radar)
+        plt.title(
+            "Blended forecast at {} (version 4)".format(
+                datetime.strftime(t, "%Y-%m-%d %H:%M:%S")
+            )
+        )
+        plt.savefig(
+            "./images/linear_blending/9_blended_forecast_version_4_{}.png".format(
+                datetime.strftime(t, "%Y%m%d%H%M%S")
+            ),
+            dpi=300,
+        )
+        plt.close()
+
 
 ########################################################################
 # 9. Verification
@@ -475,20 +604,88 @@ R_radar, _ = dimension.aggregate_fields_space(
     R_radar, metadata_input, metadata_input["xpixelsize"] * 3
 )
 
-# Plot rank histogram
-rankhist = verification.rankhist_init(R_blended_2.shape[0], 0.1)
-verification.rankhist_accum(rankhist, R_blended_2[:, -1, :, :], R_radar[-1, :, :])
-fig, ax = plt.subplots()
-verification.plot_rankhist(rankhist, ax)
-ax.set_title("Rank histogram (+%i min)" % (n_timesteps * 5))
-plt.savefig("A.png")
-plt.show()
+########################################################################
+# BLENDED FORECAST
+########################################################################
 
-# Plot rank histogram
+# compute the exceedance probability of 0.1 mm/h from the ensemble
+P_blended_3 = ensemblestats.excprob(R_blended_3[:, -1, :, :], 0.1, ignore_nan=True)
+
+###############################################################################
+# ROC curve
+# ~~~~~~~~~
+
+roc = verification.ROC_curve_init(0.1, n_prob_thrs=11)
+verification.ROC_curve_accum(roc, P_blended_3, R_radar[-1, :, :])
+fig, ax = plt.subplots()
+verification.plot_ROC(roc, ax, opt_prob_thr=True)
+ax.set_title("ROC curve (+%i min)" % (n_timesteps * 5))
+plt.savefig("./images/verification/blended_ROC_curve.png", dpi=300)
+plt.close()
+
+###############################################################################
+# Reliability diagram
+# ~~~~~~~~~~~~~~~~~~~
+
+reldiag = verification.reldiag_init(0.1)
+verification.reldiag_accum(reldiag, P_blended_3, R_radar[-1, :, :])
+fig, ax = plt.subplots()
+verification.plot_reldiag(reldiag, ax)
+ax.set_title("Reliability diagram (+%i min)" % (n_timesteps * 5))
+plt.savefig("./images/verification/blended_Reliability_diagram.png", dpi=300)
+plt.close()
+
+###############################################################################
+# Rank histogram
+# ~~~~~~~~~~~~~~
+
 rankhist = verification.rankhist_init(R_blended_3.shape[0], 0.1)
 verification.rankhist_accum(rankhist, R_blended_3[:, -1, :, :], R_radar[-1, :, :])
 fig, ax = plt.subplots()
 verification.plot_rankhist(rankhist, ax)
 ax.set_title("Rank histogram (+%i min)" % (n_timesteps * 5))
-plt.savefig("B.png")
-plt.show()
+plt.savefig("./images/verification/blended_Rank_histogram.png", dpi=300)
+plt.close()
+
+########################################################################
+# STEPS NOWCAST
+########################################################################
+
+# compute the exceedance probability of 0.1 mm/h from the ensemble
+P_steps = ensemblestats.excprob(R_steps[:, -1, :, :], 0.1, ignore_nan=True)
+
+###############################################################################
+# ROC curve
+# ~~~~~~~~~
+
+roc = verification.ROC_curve_init(0.1, n_prob_thrs=11)
+verification.ROC_curve_accum(roc, P_steps, R_radar[-1, :, :])
+fig, ax = plt.subplots()
+verification.plot_ROC(roc, ax, opt_prob_thr=True)
+ax.set_title("ROC curve (+%i min)" % (n_timesteps * 5))
+plt.savefig("./images/verification/STEPS_ROC_curve.png", dpi=300)
+plt.close()
+
+###############################################################################
+# Reliability diagram
+# ~~~~~~~~~~~~~~~~~~~
+
+reldiag = verification.reldiag_init(0.1)
+verification.reldiag_accum(reldiag, P_steps, R_radar[-1, :, :])
+fig, ax = plt.subplots()
+verification.plot_reldiag(reldiag, ax)
+ax.set_title("Reliability diagram (+%i min)" % (n_timesteps * 5))
+plt.savefig("./images/verification/STEPS_Reliability_diagram.png", dpi=300)
+plt.close()
+
+###############################################################################
+# Rank histogram
+# ~~~~~~~~~~~~~~
+
+rankhist = verification.rankhist_init(R_steps.shape[0], 0.1)
+verification.rankhist_accum(rankhist, R_steps[:, -1, :, :], R_radar[-1, :, :])
+fig, ax = plt.subplots()
+verification.plot_rankhist(rankhist, ax)
+ax.set_title("Rank histogram (+%i min)" % (n_timesteps * 5))
+plt.savefig("./images/verification/STEPS_Rank_histogram.png", dpi=300)
+plt.close()
