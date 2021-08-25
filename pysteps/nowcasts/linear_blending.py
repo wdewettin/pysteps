@@ -61,6 +61,9 @@ def forecast(
       Time stamp (in minutes) after which the blending should end. Between
       start_blending and end_blending the nowcasts and NWP data are linearly
       merged with each other. After end_blending only the NWP data is used.
+    use_nwp: bool, optional
+      Standard value is True. If True, the NWP data will be used to fill in the
+      no data mask of the nowcast.
     nowcast_kwargs: dict, optional
       Dictionary containing keyword arguments for the nowcast method.
 
