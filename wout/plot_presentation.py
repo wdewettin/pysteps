@@ -147,10 +147,10 @@ def linear_blending(
 ########################################################################
 # 0. Input
 date_str = "202107141100"  # input("Give date and time (e.g.: 201609281600):    ")
-n_timesteps = 36
+n_timesteps = 96
 start_blending = 120
-end_blending = 240
-n_ens_members = 40
+end_blending = 360
+n_ens_members = 4
 plot_1 = False
 plot_2 = False
 plot_3 = False
@@ -358,7 +358,7 @@ nowcast_kwargs = {
     "kmperpixel": metadata_input["xpixelsize"] * 3 / 1000.0,
     "timestep": 5,
     "noise_method": "nonparametric",
-    "vel_pert_method": "bps",
+    "vel_pert_method": None,  # "bps",
     "mask_method": "incremental",
 }
 
@@ -594,7 +594,7 @@ if plot_9:
 
 
 ########################################################################
-# 9. Verification
+# 10. Verification
 
 # Convert radar images to np.ndarray
 R_radar = np.array(R_radar[:])
@@ -648,6 +648,49 @@ plt.savefig("./images/verification/blended_Rank_histogram.png", dpi=300)
 plt.close()
 
 ########################################################################
+# BLENDED FORECAST with use_nwp = False
+########################################################################
+
+# compute the exceedance probability of 0.1 mm/h from the ensemble
+P_blended_4 = ensemblestats.excprob(R_blended_4[:, -1, :, :], 0.1, ignore_nan=True)
+
+###############################################################################
+# ROC curve
+# ~~~~~~~~~
+
+roc = verification.ROC_curve_init(0.1, n_prob_thrs=11)
+verification.ROC_curve_accum(roc, P_blended_4, R_radar[-1, :, :])
+fig, ax = plt.subplots()
+verification.plot_ROC(roc, ax, opt_prob_thr=True)
+ax.set_title("ROC curve (+%i min)" % (n_timesteps * 5))
+plt.savefig("./images/verification/blended_nodata_ROC_curve.png", dpi=300)
+plt.close()
+
+###############################################################################
+# Reliability diagram
+# ~~~~~~~~~~~~~~~~~~~
+
+reldiag = verification.reldiag_init(0.1)
+verification.reldiag_accum(reldiag, P_blended_4, R_radar[-1, :, :])
+fig, ax = plt.subplots()
+verification.plot_reldiag(reldiag, ax)
+ax.set_title("Reliability diagram (+%i min)" % (n_timesteps * 5))
+plt.savefig("./images/verification/blended__nodata_Reliability_diagram.png", dpi=300)
+plt.close()
+
+###############################################################################
+# Rank histogram
+# ~~~~~~~~~~~~~~
+
+rankhist = verification.rankhist_init(R_blended_4.shape[0], 0.1)
+verification.rankhist_accum(rankhist, R_blended_4[:, -1, :, :], R_radar[-1, :, :])
+fig, ax = plt.subplots()
+verification.plot_rankhist(rankhist, ax)
+ax.set_title("Rank histogram (+%i min)" % (n_timesteps * 5))
+plt.savefig("./images/verification/blended__nodata_Rank_histogram.png", dpi=300)
+plt.close()
+
+########################################################################
 # STEPS NOWCAST
 ########################################################################
 
@@ -688,4 +731,65 @@ fig, ax = plt.subplots()
 verification.plot_rankhist(rankhist, ax)
 ax.set_title("Rank histogram (+%i min)" % (n_timesteps * 5))
 plt.savefig("./images/verification/STEPS_Rank_histogram.png", dpi=300)
+plt.close()
+
+################################################################################
+# CRPS score
+# ~~~~~~~~~~
+
+timesteps = np.arange(5, (n_timesteps + 1) * 5, 5)
+CRPS_blended_3 = np.zeros(n_timesteps)
+CRPS_blended_4 = np.zeros(n_timesteps)
+CRPS_steps = np.zeros(n_timesteps)
+MAE_NWP = np.zeros(n_timesteps)
+MAE_NWP_mask = np.zeros(n_timesteps)
+# CRPS_NWP = np.zeros(n_timesteps)
+
+R_NWP_rprj_mask = np.copy(R_NWP_rprj[1:, :, :])
+nan_indices = np.isnan(R_blended_mean_4)
+R_NWP_rprj_mask[nan_indices] = np.nan
+
+"""
+R_NWP_rprj_ens = np.repeat(R_NWP_rprj[np.newaxis, 1:, :, :], n_ens_members, axis=0)
+nan_indices = np.isnan(R_blended_4)
+R_NWP_rprj_ens[nan_indices] = np.nan
+"""
+
+print(R_NWP_rprj.shape)
+
+for i in range(n_timesteps):
+    CRPS_blended_3[i] = verification.CRPS(R_blended_3[:, i, :, :], R_radar[1 + i, :, :])
+    CRPS_steps[i] = verification.CRPS(R_steps[:, i, :, :], R_radar[1 + i, :, :])
+    CRPS_blended_4[i] = verification.CRPS(R_blended_4[:, i, :, :], R_radar[1 + i, :, :])
+    det_cont = verification.det_cont_fct(
+        R_NWP_rprj[i + 1, :, :], R_radar[i + 1, :, :], "MAE"
+    )
+    MAE_NWP[i] = det_cont["MAE"]
+    det_cont_mask = verification.det_cont_fct(
+        R_NWP_rprj_mask[i, :, :], R_radar[i + 1, :, :], "MAE"
+    )
+    MAE_NWP_mask[i] = det_cont_mask["MAE"]
+    # CRPS_NWP[i] = verification.CRPS(R_NWP_rprj_ens[:, i, :, :], R_radar[1+i, :, :])
+
+print(CRPS_blended_3)
+print(MAE_NWP)
+print(MAE_NWP_mask)
+# print(CRPS_NWP)
+print(CRPS_blended_4)
+print(CRPS_steps)
+print(timesteps)
+
+plt.figure()
+plt.plot(timesteps, CRPS_blended_3, label="Blended")
+plt.plot(timesteps, CRPS_blended_4, label="Blended with no-data")
+plt.plot(timesteps, CRPS_steps, label="STEPS")
+# plt.plot(timesteps, CRPS_NWP, label="CRPS NWP")
+plt.plot(timesteps, MAE_NWP, label="MAE NWP")
+plt.plot(timesteps, MAE_NWP_mask, label="MAE NWP mask")
+plt.title("CRPS score")
+plt.ylabel("CRPS")
+plt.xlabel("time (min)")
+plt.legend()
+plt.savefig("./images/verification/CRPS.png", dpi=300)
+plt.show()
 plt.close()
