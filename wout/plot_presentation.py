@@ -146,21 +146,21 @@ def linear_blending(
 
 ########################################################################
 # 0. Input
-date_str = "202107141100"  # input("Give date and time (e.g.: 201609281600):    ")
+date_str = "202107141400"  # input("Give date and time (e.g.: 201609281600):    ")
 n_timesteps = 96
 start_blending = 120
 end_blending = 360
-n_ens_members = 4
-plot_1 = False
-plot_2 = False
-plot_3 = False
-plot_4 = False
-plot_5 = False
-plot_5_1 = False
-plot_6 = False
-plot_7 = False
-plot_8 = False
-plot_9 = False
+n_ens_members = 24
+plot_1 = True
+plot_2 = True
+plot_3 = True
+plot_4 = True
+plot_5 = True
+plot_5_1 = True
+plot_6 = True
+plot_7 = True
+plot_8 = True
+plot_9 = True
 
 ########################################################################
 # 1. Plot radar fields
@@ -738,54 +738,29 @@ plt.close()
 # ~~~~~~~~~~
 
 timesteps = np.arange(5, (n_timesteps + 1) * 5, 5)
-CRPS_blended_3 = np.zeros(n_timesteps)
 CRPS_blended_4 = np.zeros(n_timesteps)
 CRPS_steps = np.zeros(n_timesteps)
-MAE_NWP = np.zeros(n_timesteps)
 MAE_NWP_mask = np.zeros(n_timesteps)
-# CRPS_NWP = np.zeros(n_timesteps)
 
 R_NWP_rprj_mask = np.copy(R_NWP_rprj[1:, :, :])
 nan_indices = np.isnan(R_blended_mean_4)
 R_NWP_rprj_mask[nan_indices] = np.nan
 
-"""
-R_NWP_rprj_ens = np.repeat(R_NWP_rprj[np.newaxis, 1:, :, :], n_ens_members, axis=0)
-nan_indices = np.isnan(R_blended_4)
-R_NWP_rprj_ens[nan_indices] = np.nan
-"""
+# Plot R_NWP_rprj_mask
 
-print(R_NWP_rprj.shape)
 
 for i in range(n_timesteps):
-    CRPS_blended_3[i] = verification.CRPS(R_blended_3[:, i, :, :], R_radar[1 + i, :, :])
     CRPS_steps[i] = verification.CRPS(R_steps[:, i, :, :], R_radar[1 + i, :, :])
     CRPS_blended_4[i] = verification.CRPS(R_blended_4[:, i, :, :], R_radar[1 + i, :, :])
-    det_cont = verification.det_cont_fct(
-        R_NWP_rprj[i + 1, :, :], R_radar[i + 1, :, :], "MAE"
-    )
-    MAE_NWP[i] = det_cont["MAE"]
     det_cont_mask = verification.det_cont_fct(
         R_NWP_rprj_mask[i, :, :], R_radar[i + 1, :, :], "MAE"
     )
     MAE_NWP_mask[i] = det_cont_mask["MAE"]
-    # CRPS_NWP[i] = verification.CRPS(R_NWP_rprj_ens[:, i, :, :], R_radar[1+i, :, :])
-
-print(CRPS_blended_3)
-print(MAE_NWP)
-print(MAE_NWP_mask)
-# print(CRPS_NWP)
-print(CRPS_blended_4)
-print(CRPS_steps)
-print(timesteps)
 
 plt.figure()
-plt.plot(timesteps, CRPS_blended_3, label="Blended")
-plt.plot(timesteps, CRPS_blended_4, label="Blended with no-data")
+plt.plot(timesteps, CRPS_blended_4, label="Blended")
 plt.plot(timesteps, CRPS_steps, label="STEPS")
-# plt.plot(timesteps, CRPS_NWP, label="CRPS NWP")
-plt.plot(timesteps, MAE_NWP, label="MAE NWP")
-plt.plot(timesteps, MAE_NWP_mask, label="MAE NWP mask")
+plt.plot(timesteps, MAE_NWP_mask, label="NWP")
 plt.title("CRPS score")
 plt.ylabel("CRPS")
 plt.xlabel("time (min)")
